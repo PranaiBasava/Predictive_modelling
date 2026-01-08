@@ -74,7 +74,7 @@ All models were evaluated using cross-validated RMSE.
 |-----|---------|------|
 | Random Forest | 5 | **5.13** |
 | Neural Network | 5 | 5.19 |
-| Multiple Linear Regression | 10 | 5.23 |
+| Multiple Linear Regression | 5 | 5.23 |
 | CART | 5 | 5.57 |
 
 📌 Lower RMSE indicates better predictive accuracy.
@@ -110,3 +110,4 @@ While Neural Networks achieved comparable accuracy, Random Forest offers a super
 ### Neural Network
 - Effective for highly complex, non-linear patterns  
 - Best suited when interpretability is not a priority  
+
