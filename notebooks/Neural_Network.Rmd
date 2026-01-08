@@ -1,0 +1,220 @@
+---
+title: "Car Seat Sales Forecasting Using Neural Networks"
+author: "Pranai Basava"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+## Executive Summary
+
+This analysis applies a **Neural Network regression model** to forecast car seat sales using store-level demographic, pricing, and merchandising attributes.
+
+Neural Networks extend tree-based models by learning **complex non-linear relationships** through weighted combinations of input features. Using **5-fold cross-validation**, the model is trained and tuned to balance predictive accuracy and generalization performance.
+
+The trained model is applied to **new, unseen store data** to generate forward-looking sales forecasts that can support inventory planning, pricing strategy, and demand estimation.
+
+This model complements CART and Random Forest approaches by prioritizing **model flexibility and expressive power**, making it well-suited for capturing subtle patterns in retail sales data.
+
+---
+
+## 1. Project Overview
+
+Accurate demand forecasting is essential for optimizing retail operations, including inventory management, pricing decisions, and marketing investments.
+
+This notebook implements a **Neural Network regression model** to forecast car seat sales. The analysis follows the same dataset, validation framework, and evaluation strategy used in other models within this project to ensure **consistent and fair comparison**.
+
+---
+
+## 2. Business Objective
+
+The objectives of this analysis are to:
+
+- Forecast car seat sales across retail locations
+- Capture complex, non-linear relationships in the data
+- Improve predictive performance beyond tree-based models
+- Generate reliable sales estimates for new store configurations
+
+---
+
+## 3. Dataset Overview
+
+The dataset contains store-level attributes related to competition, demographics, pricing, and merchandising.
+
+### Target Variable
+- **Sales** – Number of car seats sold (measured in hundreds of units)
+
+### Predictor Variables
+- **CompPrice** – Competitor pricing
+- **Income** – Local average income (in $000s)
+- **Advertising** – Advertising spend (in $000s)
+- **Population** – Local population size (in $000s)
+- **Price** – Store price
+- **ShelfLoc** – Shelf location quality
+- **Age** – Average customer age
+- **Education** – Average education level
+- **Urban** – Urban location indicator
+- **US** – U.S. store indicator
+
+The **Store** variable is excluded from modeling as it serves only as a unique identifier.
+
+---
+
+## 4. Environment Setup
+
+```{r message=FALSE, warning=FALSE}
+library(caret)
+library(dplyr)
+```
+
+## 5. Data Ingestion
+
+```{r}
+car_seat_sales <- read.csv("data/car_seat_sales.csv")
+new_car_seat_sales <- read.csv("data/new_car_seat_sales_data.csv")
+```
+
+---
+
+## 6. Data Preparation
+
+The `Store` variable is removed prior to modeling, as it serves only as a unique identifier.  
+Neural Networks require numeric input; factor variables are automatically handled by `caret` through internal encoding.
+
+
+```{r}
+
+model_data <- car_seat_sales %>%
+  select(-Store)
+
+new_model_data <- new_car_seat_sales %>%
+  select(-Store)
+```
+
+---
+
+## 7. Modeling Strategy
+
+### Why Neural Networks?
+
+Neural Networks are capable of learning highly non-linear patterns through weighted connections between input features and hidden layers.
+
+Key advantages include:
+
+- Flexibility in modeling complex relationships  
+- Ability to capture subtle feature interactions  
+- Strong performance in non-linear forecasting tasks  
+
+### Validation Approach
+
+A **5-fold cross-validation** strategy is employed to:
+
+- Reduce overfitting risk  
+- Stabilize performance estimates  
+- Enable fair comparison across models  
+
+---
+
+## 8. Hyperparameter Tuning Strategy
+
+Neural Networks require tuning of two key hyperparameters:
+
+- **size** – Number of neurons in the hidden layer  
+- **decay** – Regularization parameter to prevent overfitting  
+
+```{r}
+set.seed(1975)
+
+cv_method <- trainControl(
+  method = "cv",
+  number = 5
+)
+
+nn_grid <- expand.grid(
+  .size = seq(5, 20, 5),
+  .decay = seq(0.1, 0.5, 0.1)
+)
+
+nn_grid
+```
+
+---
+
+## 9. Model Training – Neural Network
+
+```{r}
+nn_model <- train(
+  Sales ~ .,
+  data = model_data,
+  method = "nnet",
+  trControl = cv_method,
+  tuneGrid = nn_grid,
+  linout = TRUE,
+  trace = FALSE
+)
+
+nn_model
+```
+
+---
+
+## 10. Hyperparameter Interpretation
+
+- Hidden layer **size** controls model capacity  
+- **Decay** penalizes large weights to reduce overfitting  
+
+The optimal combination of `size` and `decay` is selected based on **minimum cross-validated RMSE**, ensuring the model generalizes well to unseen data.
+
+```{r}
+nn_model$bestTune
+```
+
+---
+
+## 11. Generating Predictions on New Store Data
+
+In a production scenario, the trained Neural Network model is applied to new store-level data without historical sales information.
+
+```{r}
+nn_predictions <- predict(nn_model, new_model_data)
+
+prediction_results <- new_car_seat_sales %>%
+  mutate(Predicted_Sales = nn_predictions)
+
+head(prediction_results)
+```
+
+`Predicted_Sales` represents the expected number of car seats sold,  
+measured in **hundreds of units**, for each new store configuration.
+
+---
+
+## 12. Business Insights
+
+Neural Networks provide a flexible modeling framework capable of capturing complex, non-linear demand patterns.
+
+From a business perspective, this enables:
+
+- Improved forecasting in dynamic retail environments  
+- Strong performance where linear or tree-based models may underfit  
+- Enhanced sensitivity to subtle pricing and demographic effects  
+
+However, Neural Networks trade interpretability for predictive power, making them most suitable when **accuracy is prioritized over transparency**.
+
+---
+
+## 13. Limitations and Next Steps
+
+While Neural Networks offer strong predictive capability, they:
+
+- Require careful hyperparameter tuning  
+- Are less interpretable than tree-based models  
+- May be sensitive to feature scaling and data distribution  
+
+Future work could include feature engineering, alternative network architectures, and ensemble strategies combining multiple model types.

@@ -1,0 +1,133 @@
+---
+title: "Model Performance Comparison and Final Model Selection"
+author: "Pranai Basava"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+## Executive Summary
+
+This document presents a comparative evaluation of four predictive models developed to forecast car seat sales across retail stores:
+
+- Multiple Linear Regression (MLR)
+- CART (Classification and Regression Tree)
+- Random Forest
+- Neural Network
+
+All models were trained using cross-validation and evaluated using Root Mean Squared Error (RMSE).
+
+Based on predictive performance, stability, and business applicability, the **Random Forest** model is selected as the final recommended model.
+
+---
+
+## 1. Evaluation Framework
+
+### Performance Metric
+
+- RMSE (Root Mean Squared Error)
+- Lower RMSE indicates better predictive accuracy
+- Sales are measured in hundreds of units
+
+### Validation Strategy
+
+- Cross-validation used across all models
+- Ensures fair and consistent comparison
+
+---
+
+## 2. RMSE Comparison Across Models
+
+```{r}
+library(dplyr)
+library(knitr)
+
+rmse_table <- data.frame(
+  Model = c(
+    "Random Forest",
+    "Neural Network",
+    "Multiple Linear Regression",
+    "CART"
+  ),
+  CV_Folds = c(5, 5, 5, 5),
+  RMSE = c(
+    5.13,
+    5.19,
+    5.23,
+    5.57
+  ),
+  Model_Type = c(
+    "Ensemble (Tree-Based)",
+    "Neural Network",
+    "Linear Regression",
+    "Decision Tree"
+  ),
+  Interpretability = c(
+    "Medium",
+    "Low",
+    "High",
+    "High"
+  )
+)
+
+rmse_table <- rmse_table %>%
+  arrange(RMSE) %>%
+  mutate(Rank = row_number())
+
+kable(
+  rmse_table,
+  caption = "Cross-Validated RMSE Comparison Across Models"
+)
+```
+
+---
+
+## 3. Interpretation of Results
+
+- Random Forest achieves the lowest RMSE (5.13)
+- Neural Network shows competitive performance with lower interpretability
+- Multiple Linear Regression provides a strong, transparent baseline
+- CART offers interpretability but higher prediction error
+
+---
+
+## 4. Model Trade-Off Analysis
+
+| Model | Accuracy | Interpretability | Stability | Business Readiness |
+|-----|---------|------------------|-----------|-------------------|
+| MLR | Moderate | High | High | High |
+| CART | Low | High | Medium | Medium |
+| Neural Network | High | Low | Medium | Medium |
+| Random Forest | **Highest** | Medium | **High** | **High** |
+
+---
+
+## 5. Final Model Selection
+
+### Recommended Model: **Random Forest**
+
+- Lowest cross-validated RMSE
+- Strong generalization performance
+- Robust to noise and outliers
+- Captures non-linear relationships and interactions
+- Suitable for production deployment
+
+---
+
+## 6. When to Use Other Models
+
+- MLR: When interpretability is the top priority
+- CART: When simple decision rules are required
+- Neural Network: When modeling highly complex non-linear patterns
+
+---
+
+## 7. Conclusion
+
+After evaluating all models under a consistent framework, **Random Forest is selected as the final production-ready model**, offering the best balance of predictive accuracy and business applicability.
+

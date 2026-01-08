@@ -1,0 +1,262 @@
+---
+title: "Car Seat Sales Forecating Using CART Regression Tree"
+author: "Pranai Basava"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+## Executive Summary
+
+This project develops a **CART (Classification and Regression Tree)** regression model to forecast car seat sales across retail stores using demographic, pricing, and merchandising variables.
+
+Using **5-fold cross-validation**, the model identifies key drivers of sales performance, including shelf location quality, pricing strategy, and local demographic factors.
+
+The trained model is applied to **new, unseen store data** to generate forward-looking sales forecasts that can support:
+
+- Inventory planning and demand forecasting  
+- Store-level pricing strategy  
+- Targeted advertising budget allocation  
+
+This CART model serves as an **interpretable baseline**, establishing a foundation for future comparison with advanced models such as **Random Forests and Neural Networks**.
+
+
+
+## 1. Project Overview
+
+Accurately forecasting product sales is critical for inventory planning, pricing strategy, and marketing optimization.  
+This project focuses on predicting **car seat sales** using store-level, demographic, and marketing-related attributes.
+
+This notebook establishes a **baseline predictive model** using a **CART (Classification and Regression Tree)** approach.  
+CART is intentionally chosen as the first model due to its interpretability and ability to capture non-linear relationships.
+
+---
+
+## 2. Business Problem
+
+Retail managers need to understand:
+- Which factors most strongly influence car seat sales
+- How pricing, advertising, and demographics interact
+- Whether interpretable models can provide actionable insights
+
+The goal is to:
+- Predict expected sales volume  
+- Establish a baseline benchmark for more advanced models  
+- Identify key drivers of sales performance  
+
+---
+
+## 3. Dataset Description
+
+The dataset contains store-level information related to pricing, competition, demographics, and marketing spend.
+
+### Target Variable
+- **Sales**: Number of car seats sold (measured in hundreds of units)
+
+### Predictor Variables
+
+| Variable | Description |
+|--------|------------|
+| Store | Unique store identifier (excluded from modeling) |
+| CompPrice | Competitor's price |
+| Income | Local average income (in $000s) |
+| Advertising | Advertising budget (in $000s) |
+| Population | Local population size (in $000s) |
+| Price | Store’s price |
+| ShelfLoc | Shelf location quality (Good, Medium, Bad) |
+| Age | Average local age |
+| Education | Average years of education |
+| Urban | Urban location (Yes/No) |
+| US | Store located in US (Yes/No) |
+
+---
+
+## 4. Environment Setup
+
+```{r message=FALSE, warning=FALSE}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(dplyr)
+library(ggplot2)
+```
+
+## 5. Data Ingestion
+
+```{r}
+car_seat_sales <- read.csv("data/car_seat_sales.csv")
+
+# Preview the data
+head(car_seat_sales)
+```
+
+---
+
+## 6. Data Preparation
+
+- Remove non-predictive identifier variables  
+- Let CART internally handle categorical variables  
+- Preserve all relevant features for interpretability  
+
+```{r}
+library(dplyr)
+
+# Remove Store ID
+model_data <- car_seat_sales %>%
+  select(-Store)
+
+str(model_data)
+```
+
+---
+
+## 7. Modeling Strategy
+
+### Why CART?
+
+CART was selected as the baseline modeling approach due to its:
+
+- Ability to capture **non-linear relationships**
+- Automatic detection of **feature interactions**
+- High interpretability through decision rules
+- Suitability as a benchmark before ensemble methods
+
+### Validation Approach
+
+To ensure robust model performance, a **5-fold cross-validation** strategy was used:
+
+- Reduces overfitting
+- Provides stable performance estimates
+- Ensures generalizability beyond training data
+
+---
+
+## 8. Model Training – CART Regression Tree
+
+```{r cart-training, message=FALSE, warning=FALSE}
+set.seed(1234)
+
+library(caret)
+
+cv_method <- trainControl(
+  method = "cv",
+  number = 5
+)
+
+cart_model <- train(
+  Sales ~ .,
+  data = model_data,
+  method = "rpart",
+  trControl = cv_method,
+  tuneLength = 100
+)
+
+cart_model
+```
+
+---
+
+## 9. Hyperparameter Explanation (Cost Complexity – cp)
+
+The key hyperparameter in CART is **cost complexity (cp)**.
+
+- Controls tree depth and pruning  
+- Penalizes excessive model complexity  
+- Balances bias vs variance  
+
+> A lower `cp` allows deeper trees, while a higher `cp` enforces simpler models.
+
+The optimal `cp` is selected based on **minimum cross-validated RMSE**.
+
+---
+
+## 10. Model Visualization
+
+```{r}
+library(rpart.plot)
+
+rpart.plot(cart_model$finalModel)
+```
+
+The CART regression tree reveals that **Shelf Location**, **Price**, **Advertising**, and **Competitor Pricing**
+are the most influential variables affecting car seat sales.
+
+Early splits emphasize merchandising and pricing decisions, indicating that in-store placement and competitive
+pricing strategy play a dominant role in sales performance.
+
+
+---
+
+## 11. Model Performance Summary
+
+```{r}
+cart_model$results %>%
+  arrange(RMSE) %>%
+  head()
+```
+
+- **RMSE** – prediction error magnitude  
+- **R-squared** – explained variance  
+
+---
+
+## 12. Generating Predictions on New Store Data
+
+In real-world retail environments, forecasting models are often applied to **new or upcoming stores**
+where historical sales data is unavailable.
+
+To simulate this scenario, the trained CART model is applied to a new dataset containing store attributes
+without observed sales values. This enables proactive demand estimation prior to store launch or product rollout.
+
+```{r}
+# Load new, unseen data
+new_car_seat_sales <- read.csv("data/new_car_seat_sales_data.csv")
+
+# Inspect the structure
+str(new_car_seat_sales)
+new_model_data <- new_car_seat_sales %>%
+select(-Store)
+```
+# Predict sales for new stores
+```{r}
+new_predictions <- predict(cart_model, new_model_data)
+```
+# Combine predictions with input data
+```{r}
+prediction_results <- new_car_seat_sales %>%
+mutate(Predicted_Sales = new_predictions)
+
+head(prediction_results)
+```
+
+**Predicted_Sales** represents the expected number of car seats sold  
+(measured in **hundreds of units**) for each store configuration.
+
+
+---
+
+## 13. Business Insights
+
+By applying the CART model to new store-level data, decision-makers can proactively estimate expected
+car seat demand before product deployment.
+
+This enables:
+
+- Pre-launch inventory optimization  
+- Location-specific pricing adjustments  
+- Targeted advertising allocation  
+- Risk reduction for underperforming store profiles  
+
+The interpretability of CART allows business stakeholders to directly understand
+**why** certain stores are forecasted to perform better than others.
+
+
+
+
+
+

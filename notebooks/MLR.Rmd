@@ -1,0 +1,222 @@
+---
+title: "Car Seat Sales Forecasting Using Multi-Linear Regression"
+author: "Pranai Basava"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+## Executive Summary
+
+This analysis applies a **Multi-Linear Regression (MLR)** model to forecast car seat sales across retail stores using store-level demographic, pricing, and merchandising attributes.
+
+MLR serves as a **transparent, interpretable baseline** that allows direct estimation of the influence of each predictor on sales. The model is trained using the historical dataset and evaluated using **cross-validated performance metrics** to ensure comparability with other models in this project.
+
+The trained model is applied to **new store data** to generate forward-looking sales forecasts supporting:
+
+- Inventory and demand planning  
+- Store-level pricing strategy  
+- Advertising budget optimization  
+- Risk mitigation for underperforming store configurations  
+
+This MLR model complements CART, Random Forest, and Neural Network approaches, offering **interpretability and actionable insights** into sales drivers.
+
+---
+
+## 1. Project Overview
+
+Multi-Linear Regression is a **classic, interpretable regression technique** that models the relationship between multiple predictors and a continuous outcome.
+
+In this notebook:
+- **Target variable**: Sales  
+- **Predictors**: Store-level pricing, advertising, demographics, merchandising  
+- **Evaluation**: 5-fold cross-validation for performance benchmarking  
+- **Prediction**: Applied to new store-level data
+
+---
+
+## 2. Business Objective
+
+The MLR model aims to:
+- Forecast car seat sales across retail stores  
+- Quantify the influence of individual predictors  
+- Provide a transparent baseline model for comparison  
+- Generate predictions for new stores for operational decisions
+
+---
+
+## 3. Dataset Overview
+
+The dataset contains the following variables:
+
+**Target Variable**  
+- **Sales**: Number of car seats sold (in hundreds)
+
+**Predictor Variables**  
+- **CompPrice** – Competitor pricing  
+- **Income** – Local average income (in $000s)  
+- **Advertising** – Advertising spend (in $000s)  
+- **Population** – Local population size (in $000s)  
+- **Price** – Store price  
+- **ShelfLoc** – Shelf location quality (Good, Medium, Bad)  
+- **Age** – Average customer age  
+- **Education** – Average education level  
+- **Urban** – Urban location indicator  
+- **US** – U.S. store indicator  
+
+**Excluded Variable**  
+- **Store** – Unique store identifier
+
+---
+
+## 4. Environment Setup
+
+```{r message=FALSE, warning=FALSE}
+library(caret)
+library(dplyr)
+library(ggplot2)
+```
+
+---
+
+## 5. Data Ingestion
+
+```{r}
+car_seat_sales <- read.csv("data/car_seat_sales.csv")
+new_car_seat_sales <- read.csv("data/new_car_seat_sales_data.csv")
+```
+
+---
+
+## 6. Data Preparation
+
+The `Store` variable is removed as it is a non-predictive identifier.  
+Categorical variables are explicitly converted to factors and aligned between training and new data.
+
+```{r}
+library(dplyr)
+
+model_data <- car_seat_sales %>%
+  select(-Store)
+
+new_model_data <- new_car_seat_sales %>%
+  select(-Store)
+
+categorical_vars <- c("ShelfLoc", "Urban", "US")
+
+for (col in categorical_vars) {
+  model_data[[col]] <- as.factor(model_data[[col]])
+  new_model_data[[col]] <- factor(
+    new_model_data[[col]],
+    levels = levels(model_data[[col]])
+  )
+}
+```
+
+---
+
+## 7. Modeling Strategy
+
+### Why Multi-Linear Regression?
+
+Multiple Linear Regression provides a transparent and interpretable framework for understanding the relationship between sales and multiple predictors.
+
+Key advantages include:
+
+- Clear interpretation of predictor effects  
+- Strong baseline for comparison with non-linear models  
+- Useful for explaining sales drivers to business stakeholders  
+
+### Validation Approach
+
+A **5-fold cross-validation** strategy is used to:
+
+- Assess model generalization  
+- Produce performance metrics (RMSE, R²)  
+- Enable fair comparison with CART, Random Forest, and Neural Networks  
+
+---
+
+## 8. Model Training – Multi-Linear Regression
+
+```{r}
+library(caret)
+
+set.seed(1975)
+
+cv_method <- trainControl(
+  method = "cv",
+  number = 5
+)
+
+mlr_model <- train(
+  Sales ~ .,
+  data = model_data,
+  method = "lm",
+  trControl = cv_method
+)
+
+mlr_model
+```
+
+---
+
+## 9. Model Evaluation
+
+```{r}
+summary(mlr_model$finalModel)
+```
+
+Interpretation guidelines:
+
+- Coefficients indicate the expected change in sales per unit change in predictors  
+- **R²** measures the proportion of variance explained  
+- **RMSE** represents prediction error magnitude  
+
+---
+
+## 10. Generating Predictions on New Store Data
+
+```{r}
+mlr_predictions <- predict(mlr_model, new_model_data)
+
+prediction_results <- new_car_seat_sales %>%
+  mutate(Predicted_Sales = mlr_predictions)
+
+head(prediction_results)
+```
+
+`Predicted_Sales` represents the expected number of car seats sold,  
+measured in **hundreds of units**, for each new store.
+
+---
+
+## 11. Business Insights
+
+Multiple Linear Regression enables clear identification of factors influencing sales:
+
+- **ShelfLoc** and **Price** exhibit the strongest impact on sales  
+- Demographic variables such as **Age**, **Income**, and **Education** show smaller but measurable effects  
+- The linear baseline helps validate and calibrate more complex models  
+
+---
+
+## 12. Limitations and Next Steps
+
+Limitations of the Multi-Linear Regression model include:
+
+- Assumption of linear relationships between predictors and sales  
+- Sensitivity to multicollinearity among predictors  
+- Inability to capture complex non-linear interactions  
+
+Planned next steps:
+
+- Regularized regression (Ridge, Lasso, Elastic Net)  
+- Cross-model performance comparison  
+- Final model selection for deployment  

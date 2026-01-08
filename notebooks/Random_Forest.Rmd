@@ -1,0 +1,222 @@
+---
+title: "Car Seat Sales Forecasting Using Random Forest"
+author: "Pranai Basava"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+## Executive Summary
+
+This analysis applies a **Random Forest regression model** to forecast car seat sales across retail stores using demographic, pricing, and merchandising attributes.
+
+Random Forest extends the baseline CART model by leveraging an **ensemble of decision trees**, resulting in improved predictive accuracy and robustness to noise and outliers. The model is trained using **5-fold cross-validation** and evaluated using consistent performance metrics to ensure fair comparison across modeling approaches.
+
+The trained model is applied to **new, unseen store data** to generate forward-looking sales forecasts that can support:
+
+- Inventory and demand planning  
+- Store-level pricing strategy  
+- Advertising budget optimization  
+- Risk mitigation for underperforming store configurations  
+
+This Random Forest model serves as a **high-performing benchmark**, balancing predictive accuracy and scalability, while complementing the interpretability of CART and the flexibility of Neural Networks.
+
+---
+
+## 1. Project Overview
+
+Accurate sales forecasting enables retailers to optimize inventory levels, pricing strategies, and marketing investments.
+
+This notebook implements a **Random Forest regression model** to forecast car seat sales using store-level demographic, pricing, and merchandising attributes. The analysis follows the same data pipeline, validation strategy, and evaluation framework as other models in this project to ensure fair and consistent comparison.
+
+---
+
+## 2. Business Objective
+
+The primary objective of this analysis is to:
+
+- Forecast car seat sales across retail stores
+- Improve prediction accuracy beyond a single decision tree
+- Capture non-linear patterns and feature interactions
+- Generate reliable sales estimates for new, unseen stores
+
+---
+
+## 3. Dataset Overview
+
+The dataset contains store-level attributes related to competition, pricing, demographics, and merchandising.
+
+### Target Variable
+- **Sales** – Number of car seats sold (measured in hundreds)
+
+### Predictor Variables
+- **CompPrice** – Competitor pricing
+- **Income** – Local average income (in $000s)
+- **Advertising** – Advertising spend (in $000s)
+- **Population** – Local population size (in $000s)
+- **Price** – Store price
+- **ShelfLoc** – Shelf location quality
+- **Age** – Average customer age
+- **Education** – Average education level
+- **Urban** – Urban location indicator
+- **US** – U.S. store indicator
+
+The variable **Store** is excluded from modeling as it is a unique identifier.
+
+---
+
+## 4. Environment Setup
+
+```{r message=FALSE, warning=FALSE}
+library(caret)
+library(randomForest)
+library(dplyr)
+```
+
+---
+
+## 5. Data Ingestion
+
+The dataset is loaded from the local project directory. This dataset contains historical sales and store-level attributes used for model training.
+
+```{r data-ingestion}
+car_seat_sales <- read.csv("data/car_seat_sales.csv")
+```
+
+---
+
+## 6. Data Preparation
+
+The `Store` variable is removed from the modeling dataset, as it serves only as a unique identifier and does not contribute to predictive performance.
+
+```{r}
+library(dplyr)
+
+model_data <- car_seat_sales %>%
+  dplyr::select(-Store)
+```
+
+---
+
+## 7. Modeling Strategy
+
+### Why Random Forest?
+
+Random Forest is an ensemble learning method that aggregates predictions from multiple decision trees to improve accuracy and generalization.
+
+Key advantages include:
+
+- Reduced overfitting compared to single trees  
+- Improved predictive performance  
+- Robust handling of non-linear relationships  
+- Implicit modeling of feature interactions  
+
+### Validation Approach
+
+A **5-fold cross-validation** strategy is used to ensure model stability and enable fair comparison with other models in this project.
+
+---
+
+## 8. Hyperparameter Tuning Strategy
+
+The primary hyperparameter in Random Forest regression is **mtry**, which controls the number of candidate features considered at each split.
+
+```{r}
+set.seed(1975)
+
+library(caret)
+
+cv_method <- trainControl(
+  method = "cv",
+  number = 5
+)
+
+mtry_grid <- expand.grid(
+  .mtry = 1:10
+)
+```
+Tuning the *mtry* parameter allows the model to balance randomness and predictive strength by controlling how many features compete at each split.
+
+---
+
+## 9. Model Training – Random Forest
+
+The Random Forest model is trained using the defined cross-validation strategy and hyperparameter grid.
+
+```{r}
+rf_model <- train(
+  Sales ~ .,
+  data = model_data,
+  method = "rf",
+  trControl = cv_method,
+  tuneGrid = mtry_grid
+)
+
+rf_model
+```
+
+---
+
+## 10. Model Evaluation
+
+The trained model object contains cross-validated performance metrics and the optimal hyperparameter configuration.
+
+```{r}
+rf_model$bestTune
+```
+
+---
+
+## 11. Generating Predictions on New Store Data
+
+In a production setting, the trained model is applied to new store configurations where historical sales data is unavailable.
+
+### Load New Data
+
+```{r}
+new_car_seat_sales <- read.csv("data/new_car_seat_sales_data.csv")
+
+new_model_data <- new_car_seat_sales %>%
+  dplyr::select(-Store)
+```
+
+### Generate Predictions
+
+```{r}
+rf_predictions <- predict(rf_model, new_model_data)
+
+prediction_results <- new_car_seat_sales %>%
+  mutate(Predicted_Sales = rf_predictions)
+
+head(prediction_results)
+```
+
+*prediction_results* represents the expected number of car seats sold  
+(measured in hundreds of units) for each new store.
+
+---
+
+## 12. Business Insights
+
+The Random Forest model provides improved forecasting accuracy by aggregating multiple decision trees.
+
+This approach delivers:
+
+- More stable predictions  
+- Reduced sensitivity to individual data points  
+- Strong performance in complex, non-linear environments  
+
+---
+
+## 13. Limitations and Next Steps
+
+Final model selection will be guided by cross-validated performance metrics and business requirements such as interpretability and deployment constraints.
+
+
+
