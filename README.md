@@ -109,5 +109,33 @@ While Neural Networks achieved comparable accuracy, Random Forest offers a super
 
 ### Neural Network
 - Effective for highly complex, non-linear patterns  
-- Best suited when interpretability is not a priority  
+- Best suited when interpretability is not a priority
 
+---
+
+## 🛠 Tools & Technologies Used
+
+- **Programming Language:** R  
+- **Modeling Framework:** caret  
+- **Machine Learning Algorithms:**
+  - Multiple Linear Regression
+  - CART (Decision Trees)
+  - Random Forest
+  - Neural Networks
+- **Validation Technique:** k-fold Cross Validation  
+- **Performance Metric:** RMSE  
+- **Data Manipulation:** dplyr  
+- **Visualization:** ggplot2  
+- **Development Environment:** RStudio / Posit Cloud  
+
+---
+
+## 💡 Skills Demonstrated
+
+- Predictive modeling and regression analysis  
+- Machine learning model comparison and selection  
+- Cross-validation and model evaluation  
+- Feature engineering and data preparation  
+- Business-focused interpretation of model results  
+- Model trade-off analysis (accuracy vs interpretability)  
+- End-to-end analytics workflow design  
